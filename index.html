@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/hmac-sha1.js"></script>
+	<script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/components/enc-base64-min.js"></script>
+	<script src="enc-base64-min.js" type="text/javascript"></script>
+	<script src="jquery.js" type="text/javascript"></script>
+	<script type="text/javascript">
+	// http://stackoverflow.com/questions/12099092/javascript-equivalent-of-phps-hash-hmac-with-raw-binary-output
+	// http://crypto-js.googlecode.com/svn/tags/3.0.2/build/components/enc-base64-min.js
+	// https://code.google.com/p/crypto-js/
+	function makeid() {
+	    var text = "";
+	    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+	    for( var i=0; i < 5; i++ )
+	        text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+	    return text;
+	}
+
+	function rawurlencode(str) {
+		str = (str + '')
+			.toString();
+
+		return encodeURIComponent(str)
+			.replace(/!/g, '%21')
+			.replace(/'/g, '%27')
+			.replace(/\(/g, '%28')
+			.replace(/\)/g, '%29')
+			.replace(/\*/g, '%2A');
+	}
+
+	function time() {
+		return Math.floor(new Date()
+		.getTime() / 1000);
+	}
+
+	var base_request_uri = 'http://127.0.0.1:8080/wordpress/wc-api/v2/products';
+
+	var http_method = 'GET';
+
+	var client_signature = 'cs_1b1ea3479727527c49d2f24bdb7fea16';
+
+	var oauth_params = {
+	'data' : 'null',
+	'oauth_consumer_key' : 'ck_f8d760447be1d24b74acba76d6386d45',
+	'oauth_nonce' : makeid(),
+	'oauth_signature_method' : 'HMAC-SHA1',
+	'oauth_timestamp' : time(),
+	'oauth_version' : '1.0'
+	};
+
+	var params = oauth_params;
+
+	var query_params = [];
+	$.each( params, function( key, value ) {
+		query_params.push(key + '%3D' + value);
+	});
+
+	var query_string = query_params.join('%26');
+
+	var encoded_uri = rawurlencode(base_request_uri);
+
+	var string_to_sign = http_method + '&' + encoded_uri + '&' + query_string;
+
+	var hash_algorithm = params['oauth_signature_method'].replace('HMAC-', '').toLowerCase();
+
+	var hash = CryptoJS.HmacSHA1(string_to_sign, client_signature);
+
+	// var signature = rawurlencode( atob( hash.toString() ) );
+	var signature = rawurlencode( hash.toString(CryptoJS.enc.Base64) );
+
+	oauth_params['oauth_signature'] = signature;
+
+	var query_string = '';
+	$.each( oauth_params, function( key, value ) {
+		var separator = '';
+		if (query_string.length == 0) separator = '&';
+		query_string += separator + key + '=' + value;
+	});
+
+	var request = $.ajax({
+		type : http_method,
+		url : base_request_uri,
+		data : oauth_params
+	})
+	.done(function( jqXHR, msg ) {
+		// alert("Response: " + jqXHR);
+		$('#resp').text(request.responseText);
+	})
+	.fail(function( jqXHR, msg ) {
+		// alert("Fail response: " + jqXHR);
+		$('#resp').text(request.responseText);
+	});
+
+
+	</script>
+	<p id="resp"></p>
+</body>
+</html>
